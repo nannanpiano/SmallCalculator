@@ -59,15 +59,25 @@ def tokenize(input_str: str) -> list:
     if input_str == '':
         return []
     first = input_str[0]
+
     if first.isspace():
         return tokenize(input_str[1:])
+    
     if first in SYMBOLS:
         return [first] + tokenize(input_str[1:])
+    
     if first in NUMBERS_CHARS:
         i = 0
         while i < len(input_str) and input_str[i] in NUMBERS_CHARS:
             i += 1
         return [to_num(input_str[:i])] + tokenize(input_str[i:])
+
+    if first.isalpha() or first == '_':
+        i = 0
+        while i < len(input_str) and (input_str[i].isalnum() or input_str[i] == '_'):
+            i += 1
+        return [input_str[:i]] + tokenize(input_str[i:])
+    
     raise CalcError(f'非法字符：{first}')
 
 # 计算单个括号内的内容
@@ -132,6 +142,7 @@ def check_syntax(token_list: list):
                 raise CalcError(f'运算符 {token} 前面缺少数字')
             expect_number = True
         else:
+            # 变量名也会走这个分支
             if not expect_number:
                 raise CalcError(f'数字 {token} 前面缺少运算符')
             expect_number = False
@@ -140,16 +151,48 @@ def check_syntax(token_list: list):
     if depth > 0:
         raise CalcError('括号不配对：缺少右括号')
 
+# 把token_list的变量名替换成相应的值
+def replace_variables(token_list: list, variables: dict) -> list:
+    result = []
+    for token in token_list:
+        if isinstance(token, str) and token not in SYMBOLS:
+            if token not in variables:
+                raise CalcError(f'变量未定义：{token}')
+            result.append(variables[token])
+        else:
+            result.append(token)
+    return result
+
+# 计算一个算式字符串
+def evaluate(input_str: str, variables: dict):
+    token_list = tokenize(input_str)
+    check_syntax(token_list)
+    token_list = replace_variables(token_list, variables)
+    return calculator_with_buffer(token_list)
+
+# 处理赋值语句，返回变量名和值
+def assign(input_str: str, variables: dict):
+    name, expr = input_str.split('=', 1)
+    name = name.strip()
+    if not name.isidentifier():
+        raise CalcError(f'变量名不合法: {name}')
+    value = evaluate(expr, variables)
+    variables[name] = value
+    return name, value
+
+
 
 # 启动计算器
 def run():
+    variables = {}
     input_str = input('请输入：')
     while input_str != 'quit':
         try:
-            token_list = tokenize(input_str)
-            check_syntax(token_list)
-            final = calculator_with_buffer(token_list)
-            print(final)
+            if '=' in input_str:
+                name, value = assign(input_str, variables)
+                print(f'{name} = {value}')
+            else:
+                print(evaluate(input_str, variables))
         except CalcError as e:
             print('错误：', e)
         input_str = input('请输入：')
