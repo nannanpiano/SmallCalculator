@@ -19,19 +19,19 @@ def tokenize(input_str: str) -> list:
         return []
     if input_str[0] == ' ':
         return tokenize(input_str[1:])
-    if input_str[0] in ['+', '-', '*', '/']:
+    if input_str[0] in ['+', '-', '*', '/', '(', ')']:
         return [input_str[0]] + tokenize(input_str[1:])
     if input_str[0] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
         i = 0
-        while i < len(input_str) and input_str[i] != '.' and input_str[i] not in ['+', '-', '*', '/', ' ']:
+        while i < len(input_str) and input_str[i] != '.' and input_str[i] not in ['+', '-', '*', '/', ' ', '(', ')']:
             i += 1
         if i == len(input_str):
             return [to_num(input_str[0:i])]
-        elif input_str[i] in ['+', '-', '*', '/', ' ']:
+        elif input_str[i] in ['+', '-', '*', '/', ' ', '(', ')']:
             return [to_num(input_str[0:i])] + tokenize(input_str[i:])
         else:
             i += 1
-            while i < len(input_str) and input_str[i] not in ['+', '-', '*', '/', ' ']:
+            while i < len(input_str) and input_str[i] not in ['+', '-', '*', '/', ' ', '(', ')']:
                 i += 1
             if i == len(input_str):
                 return [to_num(input_str[0:i])] 
@@ -61,12 +61,28 @@ def calculator(token_list: list):
         i += 2
     return ret
 
+def calculator_with_buffer(token_list: list):
+    buffer_list = []
+    i = 0
+    while i < len(token_list) and i >= 0:
+        if token_list[i] == '(':
+            buffer_list.append(i)
+            i += 1
+
+        elif token_list[i] == ')':
+            top = buffer_list.pop()
+            token_list[top:(i+1)] = [calculator(token_list[(top+1):(i)])]
+            i = top
+        else:
+            i += 1
+
+    return calculator(token_list)
 
 def run():
     input_str = input('请输入：')
     while input_str != 'quit':
         token_list = tokenize(input_str)
-        final = calculator(token_list)
+        final = calculator_with_buffer(token_list)
         print(final)
         input_str = input('请输入：')
 
