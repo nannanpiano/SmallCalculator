@@ -29,31 +29,8 @@ def to_num(num_str):
     except ValueError:
         raise CalcError(f'无法识别的数字：{num_str}')
 
-'''
-def tokenize(input_str: str) -> list:
-    if input_str == '':
-        return []
-    if input_str[0] == ' ':
-        return tokenize(input_str[1:])
-    if input_str[0] in ['+', '-', '*', '/', '(', ')']:
-        return [input_str[0]] + tokenize(input_str[1:])
-    if input_str[0] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
-        i = 0
-        while i < len(input_str) and input_str[i] != '.' and input_str[i] not in ['+', '-', '*', '/', ' ', '(', ')']:
-            i += 1
-        if i == len(input_str):
-            return [to_num(input_str[0:i])]
-        elif input_str[i] in ['+', '-', '*', '/', ' ', '(', ')']:
-            return [to_num(input_str[0:i])] + tokenize(input_str[i:])
-        else:
-            i += 1
-            while i < len(input_str) and input_str[i] not in ['+', '-', '*', '/', ' ', '(', ')']:
-                i += 1
-            if i == len(input_str):
-                return [to_num(input_str[0:i])] 
-            else:
-                return [to_num(input_str[0:i])] + tokenize(input_str[i:])
-'''
+
+
 # 将输入切成列表
 def tokenize(input_str: str) -> list:
     if input_str == '':
@@ -188,11 +165,23 @@ def run():
     input_str = input('请输入：')
     while input_str != 'quit':
         try:
-            if '=' in input_str:
+            if input_str == 'history':
+                try:
+                    with open('log.txt', 'r', encoding='utf-8') as f:
+                        for line in f:
+                            print(line, end='')
+                except FileNotFoundError:
+                    print('还没有历史记录')
+            elif '=' in input_str:
                 name, value = assign(input_str, variables)
                 print(f'{name} = {value}')
+                with open('log.txt', 'a', encoding='utf-8') as f:
+                    f.write(f'{input_str} = {value}\n')
             else:
-                print(evaluate(input_str, variables))
+                final = evaluate(input_str, variables)
+                print(final)
+                with open('log.txt', 'a', encoding='utf-8') as f:
+                    f.write(f'{input_str} = {final}\n')
         except CalcError as e:
             print('错误：', e)
         input_str = input('请输入：')
