@@ -1,3 +1,11 @@
+class CalcError(Exception):
+    pass
+
+OPERATORS = ['+', '-', '*', '/']
+SYMBOLS = OPERATORS + ['(', ')']
+NUMBERS_CHARS = '0123456789.'
+
+# 简单四则运算，并检测除数不为0
 def simple_calculate(num1, num2, operator):
     if operator == '+':
         return num1 + num2
@@ -6,14 +14,22 @@ def simple_calculate(num1, num2, operator):
     if operator == '*':
         return num1 * num2
     if operator == '/':
+        if num2 == 0:
+            raise CalcError('除数不能为零')
         return num1 / num2
 
+# 将字符转换为整数/浮点数
 def to_num(num_str):
     try:
         return int(num_str)
     except ValueError:
+        pass
+    try:
         return float(num_str)
+    except ValueError:
+        raise CalcError(f'无法识别的数字：{num_str}')
 
+'''
 def tokenize(input_str: str) -> list:
     if input_str == '':
         return []
@@ -37,9 +53,24 @@ def tokenize(input_str: str) -> list:
                 return [to_num(input_str[0:i])] 
             else:
                 return [to_num(input_str[0:i])] + tokenize(input_str[i:])
+'''
+# 将输入切成列表
+def tokenize(input_str: str) -> list:
+    if input_str == '':
+        return []
+    first = input_str[0]
+    if first.isspace():
+        return tokenize(input_str[1:])
+    if first in SYMBOLS:
+        return [first] + tokenize(input_str[1:])
+    if first in NUMBERS_CHARS:
+        i = 0
+        while i < len(input_str) and input_str[i] in NUMBERS_CHARS:
+            i += 1
+        return [to_num(input_str[:i])] + tokenize(input_str[i:])
+    raise CalcError(f'非法字符：{first}')
 
-
-
+# 计算单个括号内的内容
 def calculator(token_list: list):
     simplified_list = []
     i = 0
@@ -61,6 +92,7 @@ def calculator(token_list: list):
         i += 2
     return ret
 
+# 计算整个表达式
 def calculator_with_buffer(token_list: list):
     buffer_list = []
     i = 0
@@ -78,12 +110,48 @@ def calculator_with_buffer(token_list: list):
 
     return calculator(token_list)
 
+# 检查表达式是否有语法错误
+def check_syntax(token_list: list):
+    if not token_list:
+        raise CalcError('输入为空')
+    expect_number = True
+    depth = 0
+    for token in token_list:
+        if token == '(':
+            if not expect_number:
+                raise CalcError('左括号前面缺少运算符')
+            depth += 1
+        elif token == ')':
+            if expect_number:
+                raise CalcError('右括号前面缺少数字')
+            depth -= 1
+            if depth < 0:
+                raise CalcError('括号不配对：多了右括号')
+        elif token in OPERATORS:
+            if expect_number:
+                raise CalcError(f'运算符 {token} 前面缺少数字')
+            expect_number = True
+        else:
+            if not expect_number:
+                raise CalcError(f'数字 {token} 前面缺少运算符')
+            expect_number = False
+    if expect_number:
+        raise CalcError('算式不完整')
+    if depth > 0:
+        raise CalcError('括号不配对：缺少右括号')
+
+
+# 启动计算器
 def run():
     input_str = input('请输入：')
     while input_str != 'quit':
-        token_list = tokenize(input_str)
-        final = calculator_with_buffer(token_list)
-        print(final)
+        try:
+            token_list = tokenize(input_str)
+            check_syntax(token_list)
+            final = calculator_with_buffer(token_list)
+            print(final)
+        except CalcError as e:
+            print('错误：', e)
         input_str = input('请输入：')
 
 
